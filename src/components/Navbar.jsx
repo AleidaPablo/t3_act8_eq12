@@ -1,6 +1,17 @@
 import { Search, Bell, ChevronDown } from "lucide-react";
+import { useState } from "react";
 
-export default function Navbar({ vista, usuario }) {
+export default function Navbar({ vista, usuario, setVista, setBusquedaGlobal }) {
+  const [busquedaLocal, setBusquedaLocal] = useState("");
+
+  const handleBuscar = (e) => {
+    if (e.key === "Enter" && busquedaLocal.trim()) {
+      setVista("pacientes"); 
+      setBusquedaGlobal(busquedaLocal);
+      setBusquedaLocal(""); 
+    }
+  };
+
   return (
     <header className="navbar">
       <div className="breadcrumb">
@@ -16,7 +27,10 @@ export default function Navbar({ vista, usuario }) {
           <input
             type="text"
             placeholder="Buscar en VITACARE... ⌘ K"
-            readOnly/>
+            value={busquedaLocal}
+            onChange={(e) => setBusquedaLocal(e.target.value)}
+            onKeyDown={handleBuscar}
+          />
         </div>
         <button className="boton-notificacion" aria-label="Notificaciones">
           <Bell size={18} />

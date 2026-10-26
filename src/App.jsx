@@ -9,7 +9,6 @@ import Pacientes from "./pages/Pacientes";
 import "./App.css";
 import { Medicos, Citas, Reportes, Expedientes, Consultas } from "./pages/ModulosExtras";
 
-// Importación única y correcta de la API
 import { 
   fetchPacientesService, 
   agregarPacienteService, 
@@ -35,8 +34,14 @@ function App() {
   const [limite, setLimite] = useState(Number(getUrlParam("limit", 10)));
   const [busqueda, setBusqueda] = useState(getUrlParam("search", ""));
   const [filtroTab, setFiltroTab] = useState("todos");
+  const [filtroSexo, setFiltroSexo] = useState("todos");
 
   const [pacienteHistorial, setPacienteHistorial] = useState(null);
+  
+  const [expedientesGlobales, setExpedientesGlobales] = useState([
+    { id: "EXP-001", paciente: "Lucía Hernández", fecha: "2026-10-20", diagnostico: "Hipertensión leve", medico: "Dr. Alejandro Gómez", sangre: "O+", alergias: "Penicilina", notas: "Paciente estable, continuar con tratamiento." },
+    { id: "EXP-002", paciente: "Carlos Mendoza", fecha: "2026-10-21", diagnostico: "Control de diabetes", medico: "Dra. Beatriz Silva", sangre: "A-", alergias: "Ninguna", notas: "Ajustar dosis de insulina." },
+  ]);
 
   const actualizarURL = (nuevaPag, nuevoLim, nuevaBusq) => {
     const params = new URLSearchParams();
@@ -69,7 +74,8 @@ function App() {
     if (todosLosPacientes.length === 0) return;
 
     let filtrados = todosLosPacientes.filter((p) => {
-      if (filtroTab === "pendientes") return p.estado === "Pendiente";
+      if (filtroTab === "pendientes" && p.estado !== "Pendiente") return false;
+      if (filtroSexo !== "todos" && p.sexo !== filtroSexo) return false;
       return true;
     });
 
@@ -88,10 +94,11 @@ function App() {
     setPacientesPaginados(filtrados.slice(inicio, fin));
 
     actualizarURL(pagina, limite, busqueda);
-  }, [todosLosPacientes, filtroTab, busqueda, pagina, limite]);
+  }, [todosLosPacientes, filtroTab, filtroSexo, busqueda, pagina, limite]);
 
   const listaFiltradaBase = todosLosPacientes.filter((p) => {
-    if (filtroTab === "pendientes") return p.estado === "Pendiente";
+    if (filtroTab === "pendientes" && p.estado !== "Pendiente") return false;
+    if (filtroSexo !== "todos" && p.sexo !== filtroSexo) return false;
     if (busqueda.trim()) {
       const t = busqueda.toLowerCase().trim();
       return (
@@ -109,17 +116,14 @@ function App() {
     setUsuario(null);
   }
 
-  // --- FUNCIONES CRUD ---
   const handleAgregarPaciente = async (nuevoPaciente) => {
     try {
-      // Petición POST real a la API
       const pacienteCreado = await agregarPacienteService({
         firstName: nuevoPaciente.firstName,
         lastName: nuevoPaciente.lastName || "Sin Apellido",
         age: nuevoPaciente.age
       });
       
-      // Lo adaptamos al formato de la tabla
       const nuevoPacienteAdaptado = {
         id: `P-00${pacienteCreado.id}`,
         rawId: pacienteCreado.id,
@@ -134,10 +138,8 @@ function App() {
         colorClass: "verde",
       };
       
-      // Actualizamos el estado local
       setTodosLosPacientes([nuevoPacienteAdaptado, ...todosLosPacientes]);
     } catch (err) {
-      console.error(err);
       alert("Hubo un problema al conectar con la API.");
     }
   };
@@ -168,7 +170,6 @@ function App() {
       alert(err.message);
     }
   };
-  // --- FIN FUNCIONES CRUD ---
 
   if (!usuario) {
     return (
@@ -187,7 +188,17 @@ function App() {
           onCerrarSesion={handleCerrarSesion} />
 
         <div className="principal-wrapper">
-          <Navbar vista={vista} usuario={usuario} />
+          
+          {/* LE PASAMOS SETVISTA Y SETBUSQUEDA AL NAVBAR */}
+          <Navbar 
+            vista={vista} 
+            usuario={usuario} 
+            setVista={setVista} 
+            setBusquedaGlobal={(texto) => {
+              setBusqueda(texto);
+              setPagina(1);
+            }} 
+          />
 
           <main className="dashboard-contenido">
             
@@ -210,13 +221,15 @@ function App() {
                 onAgregar={handleAgregarPaciente}
                 onEditar={handleEditarPaciente}
                 onEliminar={handleEliminarPaciente}
+                filtroSexo={filtroSexo}
+                setFiltroSexo={setFiltroSexo}
               />
             )}
 
             {vista === "medicos" && <Medicos />}
-            {vista === "citas" && <Citas />}
+            {vista === "citas" && <Citas setExpedientes={setExpedientesGlobales} />}
             {vista === "reportes" && <Reportes />}
-            {vista === "expedientes" && <Expedientes />}
+            {vista === "expedientes" && <Expedientes expedientes={expedientesGlobales} setExpedientes={setExpedientesGlobales} />}
             {vista === "consultas" && <Consultas />}
 
             {!["pacientes", "medicos", "citas", "reportes", "expedientes", "consultas"].includes(vista) && (
