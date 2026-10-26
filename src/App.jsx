@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter } from "react-router-dom"; 
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import HistorialModal from "./components/HistorialModal";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Pacientes from "./pages/Pacientes";
-import { fetchPacientesService } from "./api/vitacareApi";
 import "./App.css";
+import { Medicos, Citas, Reportes, Expedientes, Consultas } from "./pages/ModulosExtras";
+
+// Importación única y correcta de la API
+import { 
+  fetchPacientesService, 
+  agregarPacienteService, 
+  editarPacienteService, 
+  eliminarPacienteService 
+} from "./api/vitacareApi";
 
 function App() {
   const [usuario, setUsuario] = useState(null);
@@ -16,14 +25,14 @@ function App() {
   const [pacientesPaginados, setPacientesPaginados] = useState([]);
   const [cargandoTabla, setCargandoTabla] = useState(false);
   const [errorTabla, setErrorTabla] = useState(null);
-
+  
   const getUrlParam = (param, defaultValue) => {
     const params = new URLSearchParams(window.location.search);
     return params.get(param) || defaultValue;
   };
 
   const [pagina, setPagina] = useState(Number(getUrlParam("page", 1)));
-  const [limite] = useState(Number(getUrlParam("limit", 10)));
+  const [limite, setLimite] = useState(Number(getUrlParam("limit", 10)));
   const [busqueda, setBusqueda] = useState(getUrlParam("search", ""));
   const [filtroTab, setFiltroTab] = useState("todos");
 
@@ -34,7 +43,7 @@ function App() {
     params.set("page", nuevaPag);
     params.set("limit", nuevoLim);
     if (nuevaBusq) params.set("search", nuevaBusq);
-    window.history.pushState({}, "", `?${params.toString()}`);
+    window.history.replaceState({}, "", `?${params.toString()}`);
   };
 
   const cargarPacientes = async () => {
@@ -100,48 +109,131 @@ function App() {
     setUsuario(null);
   }
 
+  // --- FUNCIONES CRUD ---
+  const handleAgregarPaciente = async (nuevoPaciente) => {
+    try {
+      // Petición POST real a la API
+      const pacienteCreado = await agregarPacienteService({
+        firstName: nuevoPaciente.firstName,
+        lastName: nuevoPaciente.lastName || "Sin Apellido",
+        age: nuevoPaciente.age
+      });
+      
+      // Lo adaptamos al formato de la tabla
+      const nuevoPacienteAdaptado = {
+        id: `P-00${pacienteCreado.id}`,
+        rawId: pacienteCreado.id,
+        nombre: `${pacienteCreado.firstName} ${pacienteCreado.lastName || ""}`,
+        correo: "nuevo@clinica.com",
+        iniciales: `${pacienteCreado.firstName[0]}${pacienteCreado.lastName ? pacienteCreado.lastName[0] : "N"}`,
+        edad: pacienteCreado.age,
+        sexo: "M",
+        telefono: "951 000 00 00",
+        ultimaVisita: "Hoy",
+        estado: "Activo",
+        colorClass: "verde",
+      };
+      
+      // Actualizamos el estado local
+      setTodosLosPacientes([nuevoPacienteAdaptado, ...todosLosPacientes]);
+    } catch (err) {
+      console.error(err);
+      alert("Hubo un problema al conectar con la API.");
+    }
+  };
+
+  const handleEditarPaciente = async (rawId) => {
+    if (!window.confirm("¿Estás seguro de editar este paciente?")) return;
+    const nuevoNombre = prompt("Ingresa el nuevo nombre del paciente:");
+    if (!nuevoNombre) return;
+
+    try {
+      await editarPacienteService(rawId, { firstName: nuevoNombre });
+      setTodosLosPacientes(
+        todosLosPacientes.map(p => 
+          p.rawId === rawId ? { ...p, nombre: nuevoNombre } : p
+        )
+      );
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleEliminarPaciente = async (rawId) => {
+    if (!window.confirm("¿Estás seguro de eliminar este paciente?")) return;
+    try {
+      await eliminarPacienteService(rawId);
+      setTodosLosPacientes(todosLosPacientes.filter(p => p.rawId !== rawId));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+  // --- FIN FUNCIONES CRUD ---
+
   if (!usuario) {
-    return <Login onLoginExitoso={(datos) => setUsuario(datos)} />;
+    return (
+      <BrowserRouter>
+        <Login onLoginExitoso={(datos) => setUsuario(datos)} />
+      </BrowserRouter>
+    );
   }
 
   return (
-    <div className="sistema-contenedor">
-      <Sidebar
-        vista={vista}
-        setVista={setVista}
-        onCerrarSesion={handleCerrarSesion} />
+    <BrowserRouter>
+      <div className="sistema-contenedor">
+        <Sidebar
+          vista={vista}
+          setVista={setVista}
+          onCerrarSesion={handleCerrarSesion} />
 
-      <div className="principal-wrapper">
-        <Navbar vista={vista} usuario={usuario} />
+        <div className="principal-wrapper">
+          <Navbar vista={vista} usuario={usuario} />
 
-        <main className="dashboard-contenido">
-          {vista === "pacientes" ? (
-            <Pacientes
-              todosLosPacientes={todosLosPacientes}
-              pacientesPaginados={pacientesPaginados}
-              filtroTab={filtroTab}
-              setFiltroTab={setFiltroTab}
-              busqueda={busqueda}
-              setBusqueda={setBusqueda}
-              pagina={pagina}
-              setPagina={setPagina}
-              totalPaginas={totalPaginas}
-              cargandoTabla={cargandoTabla}
-              errorTabla={errorTabla}
-              onVerHistorial={(paciente) => setPacienteHistorial(paciente)}/>
-          ) : (
-            <Dashboard
-              usuario={usuario}
-              totalPacientes={todosLosPacientes.length}/>
-          )}
-        </main>
+          <main className="dashboard-contenido">
+            
+            {vista === "pacientes" && (
+              <Pacientes
+                todosLosPacientes={todosLosPacientes}
+                pacientesPaginados={pacientesPaginados}
+                filtroTab={filtroTab}
+                setFiltroTab={setFiltroTab}
+                busqueda={busqueda}
+                setBusqueda={setBusqueda}
+                pagina={pagina}
+                setPagina={setPagina}
+                totalPaginas={totalPaginas}
+                cargandoTabla={cargandoTabla}
+                errorTabla={errorTabla}
+                onVerHistorial={(paciente) => setPacienteHistorial(paciente)}
+                limite={limite}
+                setLimite={setLimite}
+                onAgregar={handleAgregarPaciente}
+                onEditar={handleEditarPaciente}
+                onEliminar={handleEliminarPaciente}
+              />
+            )}
 
-        <HistorialModal
-          paciente={pacienteHistorial}
-          onClose={() => setPacienteHistorial(null)}
-        />
+            {vista === "medicos" && <Medicos />}
+            {vista === "citas" && <Citas />}
+            {vista === "reportes" && <Reportes />}
+            {vista === "expedientes" && <Expedientes />}
+            {vista === "consultas" && <Consultas />}
+
+            {!["pacientes", "medicos", "citas", "reportes", "expedientes", "consultas"].includes(vista) && (
+              <Dashboard
+                usuario={usuario}
+                totalPacientes={todosLosPacientes.length}/>
+            )}
+
+          </main>
+
+          <HistorialModal
+            paciente={pacienteHistorial}
+            onClose={() => setPacienteHistorial(null)}
+          />
+        </div>
       </div>
-    </div>
+    </BrowserRouter>
   );
 }
 

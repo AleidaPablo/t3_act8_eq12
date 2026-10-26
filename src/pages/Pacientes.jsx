@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, FileClock } from "lucide-react";
 
 export default function Pacientes({
@@ -13,7 +14,29 @@ export default function Pacientes({
   cargandoTabla,
   errorTabla,
   onVerHistorial,
+  limite,
+  setLimite,
+  onAgregar,
+  onEditar,
+  onEliminar
 }) {
+  // Estados para el formulario de nuevo paciente
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevaEdad, setNuevaEdad] = useState("");
+
+  const handleGuardar = () => {
+    if (!nuevoNombre.trim()) return alert("Escribe un nombre");
+    onAgregar({ 
+      firstName: nuevoNombre, 
+      lastName: "", 
+      age: Number(nuevaEdad) || 30 
+    });
+    setMostrarFormulario(false);
+    setNuevoNombre("");
+    setNuevaEdad("");
+  };
+
   const totalPendientes = todosLosPacientes.filter(
     (p) => p.estado === "Pendiente"
   ).length;
@@ -45,7 +68,8 @@ export default function Pacientes({
           </button>
         </div>
 
-        <div className="tabla-busqueda-bar">
+        {/* BARRA DE BÚSQUEDA Y BOTÓN AGREGAR */}
+        <div className="tabla-busqueda-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <div className="busqueda-paciente-box">
             <Search size={16} />
             <input
@@ -57,6 +81,12 @@ export default function Pacientes({
                 setPagina(1);
               }} />
           </div>
+          
+          <button 
+            onClick={() => setMostrarFormulario(true)}
+            style={{ background: '#0E7490', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            + Nuevo Paciente
+          </button>
         </div>
 
         {cargandoTabla && (
@@ -75,7 +105,7 @@ export default function Pacientes({
                   <th>TELÉFONO</th>
                   <th>ÚLTIMA VISITA</th>
                   <th>ESTADO</th>
-                  <th>HISTORIAL</th>
+                  <th>ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,12 +135,24 @@ export default function Pacientes({
                         {p.estado}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ display: 'flex', gap: '5px' }}>
                       <button
                         className="boton-historial"
-                        onClick={() => onVerHistorial(p)} >
+                        onClick={() => onVerHistorial(p)} 
+                        title="Ver historial">
                         <FileClock size={16} />
-                        <span>Ver historial</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => onEditar(p.rawId)}
+                        style={{ background: '#E0F2FE', color: '#0E7490', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                        Editar
+                      </button>
+                      
+                      <button 
+                        onClick={() => onEliminar(p.rawId)}
+                        style={{ background: '#FEE2E2', color: '#EF4444', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                        Eliminar
                       </button>
                     </td>
                   </tr>
@@ -118,16 +160,33 @@ export default function Pacientes({
               </tbody>
             </table>
 
-            <div className="paginacion-bar" style={{ justifyContent: "flex-end" }}>
+            {/* PAGINACIÓN CON SELECTOR DE LÍMITE */}
+            <div className="paginacion-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
+              <div>
+                <label style={{ marginRight: '8px' }}>Mostrar: </label>
+                <select 
+                  value={limite} 
+                  onChange={(e) => {
+                    setLimite(Number(e.target.value));
+                    setPagina(1);
+                  }}
+                  style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={40}>40</option>
+                  <option value={50}>50</option>
+                </select>
+                <span style={{ marginLeft: '8px' }}>registros</span>
+              </div>
+
               <div className="paginacion-botones">
                 <button
                   disabled={pagina <= 1}
                   onClick={() => setPagina(pagina - 1)}>
                   Anterior
                 </button>
-                <span>
-                  Página {pagina} de {totalPaginas}
-                </span>
+                <span> Página {pagina} de {totalPaginas} </span>
                 <button
                   disabled={pagina >= totalPaginas}
                   onClick={() => setPagina(pagina + 1)} >
@@ -138,6 +197,47 @@ export default function Pacientes({
           </div>
         )}
       </div>
+
+      {/* VENTANA EMERGENTE PARA AGREGAR PACIENTE */}
+      {mostrarFormulario && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginBottom: '20px' }}>Agregar Nuevo Paciente</h3>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Nombre:</label>
+              <input 
+                type="text" 
+                value={nuevoNombre} 
+                onChange={(e) => setNuevoNombre(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                placeholder="Ej. Juan"
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Edad:</label>
+              <input 
+                type="number" 
+                value={nuevaEdad} 
+                onChange={(e) => setNuevaEdad(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                placeholder="Ej. 35"
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setMostrarFormulario(false)} style={{ padding: '8px 16px', border: '1px solid #ccc', borderRadius: '4px', background: 'white', cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={handleGuardar} style={{ padding: '8px 16px', border: 'none', borderRadius: '4px', background: '#14B8A6', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>
+                Guardar Paciente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -19,6 +19,7 @@ export async function fetchPacientesService() {
   if (!res.ok) {
     throw new Error("No se pudieron obtener los datos de los pacientes.");
   }
+
   const data = await res.json();
   const usuariosBase = data.users.slice(0, 70);
   return usuariosBase.map((u, index) => {
@@ -44,4 +45,32 @@ export async function fetchPacientesService() {
           : "morado",
     };
   });
+}
+
+export async function agregarPacienteService(nuevoPaciente) {
+  const res = await fetch(`${BASE_URL}/users/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nuevoPaciente),
+  });
+  if (!res.ok) throw new Error("Error al agregar paciente");
+  return res.json();
+}
+
+export async function editarPacienteService(rawId, datosActualizados) {
+  const res = await fetch(`${BASE_URL}/users/${rawId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datosActualizados),
+  });
+  if (!res.ok) throw new Error("Error al editar paciente");
+  return res.json();
+}
+
+export async function eliminarPacienteService(rawId) {
+  const res = await fetch(`${BASE_URL}/users/${rawId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Error al eliminar paciente");
+  return res.json();
 }
