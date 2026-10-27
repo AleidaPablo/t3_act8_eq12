@@ -22,7 +22,7 @@ export default function Sidebar({ vista, setVista, onCerrarSesion }) {
       </div>
 
       <div className="sidebar-seccion">
-        <span className="sidebar-titulo-seccion">ESPACIO DE TRABAJO</span>
+        <span className="sidebar-titulo-seccion"></span>
         <nav className="sidebar-menu">
           <button
             className={`sidebar-item ${vista === "panel" ? "activo" : ""}`}

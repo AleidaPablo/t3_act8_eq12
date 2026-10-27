@@ -4,7 +4,11 @@
   margin: 0;
   padding: 0;
 }
-
+h2{
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #183247;
+  font-size: 20px;
+}
 :root {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   color: #183247;

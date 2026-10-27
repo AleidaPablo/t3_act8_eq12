@@ -4,6 +4,16 @@ import { useState } from "react";
 export default function Navbar({ vista, usuario, setVista, setBusquedaGlobal }) {
   const [busquedaLocal, setBusquedaLocal] = useState("");
 
+  const titulosVista = {
+    panel: "Panel principal",
+    pacientes: "Pacientes",
+    medicos: "Médicos",
+    citas: "Citas medicas",
+    expedientes: "Expedientes clinicos",
+    consultas: "Consultas",
+    reportes: "Reportes",
+  };
+
   const handleBuscar = (e) => {
     if (e.key === "Enter" && busquedaLocal.trim()) {
       setVista("pacientes"); 
@@ -15,12 +25,18 @@ export default function Navbar({ vista, usuario, setVista, setBusquedaGlobal }) 
   return (
     <header className="navbar">
       <div className="breadcrumb">
-        <span>Clinica</span>
+        <span 
+          style={{ cursor: "pointer" }} 
+          onClick={() => setVista("panel")}
+        >
+          Clinica
+        </span>
         <span className="separador">&gt;</span>
         <span className="actual">
-          {vista === "pacientes" ? "Pacientes" : "Panel principal"}
+          {titulosVista[vista] || "Panel principal"}
         </span>
       </div>
+
       <div className="navbar-derecha">
         <div className="busqueda-box">
           <Search size={16} className="icono-busqueda" />
@@ -32,17 +48,20 @@ export default function Navbar({ vista, usuario, setVista, setBusquedaGlobal }) 
             onKeyDown={handleBuscar}
           />
         </div>
+
         <button className="boton-notificacion" aria-label="Notificaciones">
           <Bell size={18} />
           <span className="punto-notificacion"></span>
         </button>
+
         <div className="perfil-usuario">
           <img
-            src={usuario.image}
-            alt={usuario.firstName}
-            className="avatar-navbar"/>
+            src={usuario?.image || "https://via.placeholder.com/150"}
+            alt={usuario?.firstName || "Usuario"}
+            className="avatar-navbar"
+          />
           <span className="nombre-usuario">
-            Dra. {usuario.firstName} {usuario.lastName}
+            Dra. {usuario?.firstName} {usuario?.lastName}
           </span>
           <ChevronDown size={16} className="flecha-perfil" />
         </div>
